@@ -44,6 +44,9 @@ public class PostEntryService {
     public Optional<PostEntry> findById(ObjectId id){
         return repository.findById(id);
     }
+    public Optional<PostEntry> findBySlug(String slug){
+        return repository.findBySlug(slug);
+    }
 
     @Transactional
     public boolean deleteById(ObjectId id, String email){

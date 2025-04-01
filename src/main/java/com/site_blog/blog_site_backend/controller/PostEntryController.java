@@ -2,6 +2,7 @@ package com.site_blog.blog_site_backend.controller;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -22,8 +23,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-// import com.fasterxml.jackson.databind.ObjectMapper;
 import com.site_blog.blog_site_backend.model.PostEntry;
 import com.site_blog.blog_site_backend.model.User;
 import com.site_blog.blog_site_backend.service.FileService;
@@ -42,23 +41,29 @@ public class PostEntryController {
 
     @Autowired
     private FileService fileService;
-    @Autowired
-    private ObjectMapper objectMapper;
+    
 
     @PostMapping
-    public ResponseEntity<PostEntry> createEntry(@RequestParam("entry") String entryJson, @RequestParam("file") MultipartFile file){
+    public ResponseEntity<PostEntry> createEntry(@RequestBody PostEntry entry){
         try {
-            PostEntry entry = objectMapper.readValue(entryJson, PostEntry.class);
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             String user = auth.getName();
-            String imageFileId = fileService.storeImage(file);
-            entry.setImage(imageFileId);
             entry.setDate(LocalDateTime.now());
             postService.saveEntry(entry, user);
             return new ResponseEntity<>(entry, HttpStatus.CREATED);
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @PostMapping("/file-upload")
+    public ResponseEntity<?> fileUpload(@RequestParam("file") MultipartFile file){
+        try {
+            String imageFileId = fileService.storeImage(file);
+            return new ResponseEntity<>(Map.of("fileId", imageFileId), HttpStatus.CREATED);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST); 
         }
     }
 
@@ -85,6 +90,26 @@ public class PostEntryController {
             Optional<PostEntry> entry = postService.findById(id);
             if(entry.isPresent()){
                 return new ResponseEntity<>(entry.get(), HttpStatus.OK);
+            }
+        }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+
+    @PutMapping("/{slug}")
+    public ResponseEntity<?> updatePostEntryBySlug(@PathVariable String slug, @RequestBody PostEntry newEntry){
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String user = auth.getName();
+        User userDb = userService.findByUserName(user);
+        List<PostEntry> collect = userDb.getPostEntries().stream().filter(x -> x.getSlug().equals(slug)).collect(Collectors.toList());
+        if(!collect.isEmpty()){
+            PostEntry oldEntry = postService.findBySlug(slug).orElse(null);
+            if(oldEntry != null){
+                oldEntry.setStatus(oldEntry.isStatus() == newEntry.isStatus() ? oldEntry.isStatus(): newEntry.isStatus());
+                oldEntry.setContent(newEntry.getContent() != null && !newEntry.getContent().equals("") ? newEntry.getContent() : oldEntry.getContent());
+                oldEntry.setTitle(newEntry.getTitle() != null && !newEntry.getTitle().equals("") ? newEntry.getTitle() : oldEntry.getTitle());
+                oldEntry.setImage(newEntry.getImage() != null && !newEntry.getImage().equals("") ? newEntry.getImage() : oldEntry.getImage());
+                postService.saveEntry(oldEntry);
+                return new ResponseEntity<>(oldEntry, HttpStatus.OK);
             }
         }
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);

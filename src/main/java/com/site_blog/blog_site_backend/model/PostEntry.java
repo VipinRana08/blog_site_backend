@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 
@@ -20,6 +21,8 @@ public class PostEntry {
     private ObjectId id;
     @NonNull
     private String title;
+    @Indexed(unique = true)
+    @NonNull
     private String slug;
     private String content;
     private String image;
