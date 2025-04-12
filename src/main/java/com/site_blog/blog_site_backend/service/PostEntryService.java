@@ -63,4 +63,20 @@ public class PostEntryService {
         }
         return removed;
     }
+
+    public boolean deleteBySlug(String slug, String email) {
+        
+        boolean removed = false;
+        try {
+            User user = userService.findByUserName(email);
+            removed = user.getPostEntries().removeIf(x -> x.getSlug().equals(slug));
+            if(removed){
+                userService.saveOldUser(user);
+                repository.deleteBySlug(slug);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("An error occured while deletion: " , e);
+        }
+        return removed;
+    }
 }

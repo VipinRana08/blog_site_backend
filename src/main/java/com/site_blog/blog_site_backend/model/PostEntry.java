@@ -26,7 +26,7 @@ public class PostEntry {
     private String slug;
     private String content;
     private String image;
-    private boolean status;
+    private String status;
     private LocalDateTime date;
 
     

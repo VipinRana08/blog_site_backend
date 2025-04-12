@@ -11,4 +11,6 @@ public interface PostEntryRepository extends MongoRepository<PostEntry, ObjectId
 
     Optional<PostEntry> findBySlug(String slug);
 
+    void deleteBySlug(String slug);
+
 }

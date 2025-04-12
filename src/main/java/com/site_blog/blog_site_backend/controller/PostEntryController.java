@@ -67,19 +67,52 @@ public class PostEntryController {
         }
     }
 
+    @GetMapping("/file-preview/{fileId}")
+    public ResponseEntity<String> getFilePreview(@PathVariable String fileId) {
+        try {
+            String base64Preview = fileService.getFilePreview(fileId);
+            return new ResponseEntity<>(base64Preview, HttpStatus.OK);  
+        } catch (Exception e) {
+            return new ResponseEntity<>("Error retrieving file preview: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     
     @GetMapping
     public ResponseEntity<?> getAllEntriesOfUser(){
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            String user = auth.getName();
+            User userDb = userService.findByUserName(user);
+    
+            if (userDb == null) {
+                return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
+            }
+            List<PostEntry> allEntries = userDb.getPostEntries();
+            
+            if (allEntries != null && !allEntries.isEmpty()) {
+                return new ResponseEntity<>(allEntries, HttpStatus.OK);
+            }
+            return new ResponseEntity<>("No posts found", HttpStatus.NO_CONTENT);
+        } catch (Exception e) {
+            return new ResponseEntity<>("Server error: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping("/{slug}")
+    public ResponseEntity<?> getBySlug(@PathVariable String slug){
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String user = auth.getName();
         User userDb = userService.findByUserName(user);
-        List<PostEntry> allEntries = userDb.getPostEntries();
-        if(allEntries != null && !allEntries.isEmpty()){
-            return new ResponseEntity<>(allEntries, HttpStatus.OK);
+        List<PostEntry> collect = userDb.getPostEntries().stream().filter(x -> x.getSlug().equals(slug)).collect(Collectors.toList());
+        if(!collect.isEmpty()){
+            Optional<PostEntry> entry = postService.findBySlug(slug);
+            if(entry.isPresent()){
+                return new ResponseEntity<>(entry.get(), HttpStatus.OK);
+            }
         }
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
-
     @GetMapping("id/{id}")
     public ResponseEntity<?> getById(@PathVariable ObjectId id){
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -104,7 +137,7 @@ public class PostEntryController {
         if(!collect.isEmpty()){
             PostEntry oldEntry = postService.findBySlug(slug).orElse(null);
             if(oldEntry != null){
-                oldEntry.setStatus(oldEntry.isStatus() == newEntry.isStatus() ? oldEntry.isStatus(): newEntry.isStatus());
+                oldEntry.setStatus(oldEntry.getStatus() == newEntry.getStatus() ? oldEntry.getStatus(): newEntry.getStatus());
                 oldEntry.setContent(newEntry.getContent() != null && !newEntry.getContent().equals("") ? newEntry.getContent() : oldEntry.getContent());
                 oldEntry.setTitle(newEntry.getTitle() != null && !newEntry.getTitle().equals("") ? newEntry.getTitle() : oldEntry.getTitle());
                 oldEntry.setImage(newEntry.getImage() != null && !newEntry.getImage().equals("") ? newEntry.getImage() : oldEntry.getImage());
@@ -124,11 +157,21 @@ public class PostEntryController {
         if(!collect.isEmpty()){
             PostEntry oldEntry = postService.findById(id).orElse(null);
             if(oldEntry != null){
-                oldEntry.setStatus(oldEntry.isStatus() == newEntry.isStatus() ? oldEntry.isStatus(): newEntry.isStatus());
+                oldEntry.setStatus(oldEntry.getStatus() == newEntry.getStatus() ? oldEntry.getStatus(): newEntry.getStatus());
                 oldEntry.setContent(newEntry.getContent() != null && !newEntry.getContent().equals("") ? newEntry.getContent() : oldEntry.getContent());
                 postService.saveEntry(oldEntry);
                 return new ResponseEntity<>(oldEntry, HttpStatus.OK);
             }
+        }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+    @DeleteMapping("/{slug}")
+    public ResponseEntity<?> deletePostBySlug(@PathVariable String slug){
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String userName = auth.getName();
+        boolean removed = postService.deleteBySlug(slug, userName);
+        if(removed){
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }

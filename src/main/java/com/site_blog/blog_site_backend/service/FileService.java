@@ -12,6 +12,7 @@ import com.mongodb.client.gridfs.model.GridFSFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Base64;
 
 
 @Service
@@ -32,4 +33,19 @@ public class FileService {
     public GridFSFile getImage(String fileId) {
         return gridFsTemplate.findOne(new Query(Criteria.where("_id").is(fileId)));
     }
+
+    // retrieve image file from GridFS using file ID
+    public String getFilePreview(String fileId) throws IOException {
+        GridFSFile gridFSFile = getImage(fileId);
+        if (gridFSFile == null) {
+            throw new IOException("File not found in GridFS");
+        }
+
+        try (InputStream inputStream = gridFsTemplate.getResource(gridFSFile).getInputStream()) {
+            byte[] fileBytes = inputStream.readAllBytes();
+            // Return the Base64 encoded string
+            return Base64.getEncoder().encodeToString(fileBytes);
+        }
+    }
+
 }
