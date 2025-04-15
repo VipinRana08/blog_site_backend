@@ -37,7 +37,7 @@ public class SpringSecurity {
                 .and()
                 .authorizeRequests(request -> request
                     .requestMatchers("/public/**").permitAll()  
-                    .requestMatchers("/posts/**", "/user/**").authenticated()  
+                    .requestMatchers("/posts/**", "/user/**", "/ai/**").authenticated()  
                     .anyRequest().authenticated()) 
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement() 

@@ -3,7 +3,6 @@ package com.site_blog.blog_site_backend.controller;
 
 import java.util.List;
 
-import org.apache.http.protocol.HTTP;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
